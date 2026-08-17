@@ -1,0 +1,23 @@
+---
+- name: MSSQL Security Health Check - SQL Server Instance Name
+  hosts: all
+  gather_facts: no
+
+  vars:
+    primary_host: "."
+
+  tasks:
+
+    - name: Copy MSSQL SHC PowerShell script to Windows server
+      ansible.windows.win_copy:
+        src: scripts/Invoke-MSSQL-SHC.ps1
+        dest: C:\Windows\Temp\Invoke-MSSQL-SHC.ps1
+
+    - name: Execute MSSQL SHC PowerShell script
+      ansible.windows.win_shell: |
+        & "C:\Windows\Temp\Invoke-MSSQL-SHC.ps1" -PrimaryHost "{{ primary_host }}"
+      register: shc_result
+
+    - name: Display MSSQL SHC result
+      ansible.builtin.debug:
+        msg: "{{ shc_result.stdout }}"
