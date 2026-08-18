@@ -1,33 +1,35 @@
-param(
+param (
     [string]$PrimaryHost = "."
 )
 
-$ErrorActionPreference = "Stop"
+# Report location
+$ReportFile = "C:\Temp\MSSQL_SHC_Report.txt"
 
-$query = @"
-SELECT @@SERVERNAME AS ServerName;
-"@
+# Get SQL Service Status
+$Service = Get-Service -Name MSSQLSERVER -ErrorAction SilentlyContinue
 
-$result = Invoke-Sqlcmd `
-    -ServerInstance $PrimaryHost `
-    -Database "master" `
-    -Query $query `
-    -ErrorAction Stop
-
-$serverName = $result.ServerName
-
-if ([string]::IsNullOrWhiteSpace($serverName)) {
-    $status = "VIOLATION"
+if ($Service) {
+    $ServiceStatus = $Service.Status
 }
 else {
-    $status = "COMPLIANT"
+    $ServiceStatus = "SQL Service Not Found"
 }
 
-[PSCustomObject]@{
-    CheckId     = "SQL_SHC_001"
-    Description = "SQL Server Instance Name"
-    Scope       = "INSTANCE"
-    Status      = $status
-    ServerName  = $serverName
-    Timestamp   = (Get-Date).ToUniversalTime().ToString("o")
-} | ConvertTo-Json -Depth 5
+# Build output
+$Results = @()
+$Results += "========================================="
+$Results += "MSSQL Security Health Check"
+$Results += "========================================="
+$Results += "Server: $env:COMPUTERNAME"
+$Results += "Primary Host: $PrimaryHost"
+$Results += "Date: $(Get-Date)"
+$Results += "SQL Service Status: $ServiceStatus"
+$Results += "========================================="
+
+# Write report to file
+$Results | Out-File -FilePath $ReportFile -Encoding UTF8
+
+# Display output in AAP
+$Results | ForEach-Object {
+    Write-Output $_
+}
